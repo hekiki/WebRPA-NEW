@@ -14,6 +14,7 @@ from .base import (
 
 # 导入所有执行器以触发注册
 from . import basic
+from . import basic_variable  # 变量操作执行器
 from . import advanced
 from . import advanced_file_ops  # 文件操作执行器
 from . import advanced_browser

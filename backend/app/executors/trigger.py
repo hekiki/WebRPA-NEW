@@ -13,7 +13,7 @@ from .base import (
     ModuleResult,
     register_executor,
 )
-from .type_utils import to_int
+from .type_utils import to_int, to_float
 from ..utils.jsonpath_parser import parse_jsonpath
 
 
@@ -596,13 +596,20 @@ class MouseTriggerExecutor(ModuleExecutor):
         """
         鼠标触发器 - 监听鼠标事件
         配置项：
-        - triggerType: 触发类型（left_click/right_click/middle_click/scroll_up/scroll_down/move）
+        - triggerType: 触发类型（left_click/right_click/middle_click/scroll_up/scroll_down/move/
+                                   left_gesture/right_gesture/middle_gesture/custom_gesture）
+        - gesturePattern: 手势模式（仅手势类型有效），如 "up", "down_right", "left_up_right"
         - moveDistance: 移动距离阈值（像素，仅移动类型有效）
+        - minGestureDistance: 手势最小移动距离（像素，仅手势类型有效）
+        - gestureTimeout: 手势超时时间（秒，仅手势类型有效）
         - timeout: 超时时间（秒），0表示无限等待
         - saveToVariable: 保存鼠标位置的变量名
         """
         trigger_type = context.resolve_value(config.get('triggerType', 'left_click'))
+        gesture_pattern = context.resolve_value(config.get('gesturePattern', ''))
         move_distance = to_int(config.get('moveDistance', 100), 100, context)
+        min_gesture_distance = to_int(config.get('minGestureDistance', 50), 50, context)
+        gesture_timeout = to_float(config.get('gestureTimeout', 2.0), 2.0, context)
         timeout = to_int(config.get('timeout', 0), 0, context)
         save_to_variable = config.get('saveToVariable', 'mouse_position')
 
@@ -610,89 +617,195 @@ class MouseTriggerExecutor(ModuleExecutor):
             import ctypes
             from pynput import mouse
             
-            context.add_log('info', f"🖱️ 鼠标触发器已启动", None)
+            # 判断是否为手势触发类型
+            is_gesture_trigger = trigger_type in ['left_gesture', 'right_gesture', 'middle_gesture', 'custom_gesture']
             
-            trigger_type_labels = {
-                'left_click': '左键点击',
-                'right_click': '右键点击',
-                'middle_click': '中键点击',
-                'scroll_up': '向上滚动',
-                'scroll_down': '向下滚动',
-                'move': f'移动超过{move_distance}像素'
-            }
-            context.add_log('info', f"📌 触发条件: {trigger_type_labels.get(trigger_type, trigger_type)}", None)
-            
-            # 创建等待事件
-            event = asyncio.Event()
-            mouse_data = {}
-            start_pos = None
-            
-            def on_click(x, y, button, pressed):
-                nonlocal mouse_data
-                if not pressed:  # 只在释放时触发
-                    if trigger_type == 'left_click' and button == mouse.Button.left:
-                        mouse_data = {'x': x, 'y': y, 'button': 'left'}
-                        event.set()
-                    elif trigger_type == 'right_click' and button == mouse.Button.right:
-                        mouse_data = {'x': x, 'y': y, 'button': 'right'}
-                        event.set()
-                    elif trigger_type == 'middle_click' and button == mouse.Button.middle:
-                        mouse_data = {'x': x, 'y': y, 'button': 'middle'}
-                        event.set()
-            
-            def on_scroll(x, y, dx, dy):
-                nonlocal mouse_data
-                if trigger_type == 'scroll_up' and dy > 0:
-                    mouse_data = {'x': x, 'y': y, 'direction': 'up', 'delta': dy}
+            if is_gesture_trigger:
+                # 使用手势识别服务
+                from app.services.mouse_gesture_service import get_mouse_gesture_service
+                
+                gesture_service = get_mouse_gesture_service()
+                
+                # 解析手势模式
+                expected_directions = []
+                if gesture_pattern:
+                    direction_parts = gesture_pattern.split('_')
+                    from app.services.mouse_gesture_service import GestureDirection
+                    direction_map = {
+                        'up': GestureDirection.UP,
+                        'down': GestureDirection.DOWN,
+                        'left': GestureDirection.LEFT,
+                        'right': GestureDirection.RIGHT,
+                    }
+                    for part in direction_parts:
+                        if part in direction_map:
+                            expected_directions.append(direction_map[part])
+                
+                context.add_log('info', f"🖱️ 鼠标手势触发器已启动", None)
+                
+                trigger_type_labels = {
+                    'left_gesture': f'左键手势: {gesture_pattern or "任意"}',
+                    'right_gesture': f'右键手势: {gesture_pattern or "任意"}',
+                    'middle_gesture': f'中键手势: {gesture_pattern or "任意"}',
+                    'custom_gesture': f'自定义手势: {gesture_pattern or "任意"}'
+                }
+                context.add_log('info', f"📌 触发条件: {trigger_type_labels.get(trigger_type, trigger_type)}", None)
+                
+                # 创建等待事件
+                event = asyncio.Event()
+                gesture_data = {}
+                
+                def gesture_callback(gesture_str: str, directions):
+                    nonlocal gesture_data
+                    
+                    # 检查按钮类型
+                    button_match = False
+                    if trigger_type == 'left_gesture' and gesture_str.startswith('left_'):
+                        button_match = True
+                    elif trigger_type == 'right_gesture' and gesture_str.startswith('right_'):
+                        button_match = True
+                    elif trigger_type == 'middle_gesture' and gesture_str.startswith('middle_'):
+                        button_match = True
+                    elif trigger_type == 'custom_gesture':
+                        button_match = True
+                    
+                    if not button_match:
+                        return
+                    
+                    # 检查手势模式（如果指定了）
+                    if expected_directions:
+                        # 检查方向序列是否匹配
+                        if len(directions) != len(expected_directions):
+                            return
+                        if not all(d == e for d, e in zip(directions, expected_directions)):
+                            return
+                    
+                    # 匹配成功
+                    gesture_data = {
+                        'gesture': gesture_str,
+                        'directions': [d.value for d in directions],
+                        'pattern': gesture_pattern
+                    }
                     event.set()
-                elif trigger_type == 'scroll_down' and dy < 0:
-                    mouse_data = {'x': x, 'y': y, 'direction': 'down', 'delta': abs(dy)}
-                    event.set()
-            
-            def on_move(x, y):
-                nonlocal mouse_data, start_pos
-                if trigger_type == 'move':
-                    if start_pos is None:
-                        start_pos = (x, y)
+                
+                # 启动手势识别
+                gesture_service.start(
+                    callback=gesture_callback,
+                    min_distance=min_gesture_distance,
+                    gesture_timeout=gesture_timeout
+                )
+                
+                try:
+                    # 等待触发或超时
+                    if timeout > 0:
+                        await asyncio.wait_for(event.wait(), timeout=timeout)
                     else:
-                        distance = ((x - start_pos[0]) ** 2 + (y - start_pos[1]) ** 2) ** 0.5
-                        if distance >= move_distance:
-                            mouse_data = {'x': x, 'y': y, 'start_x': start_pos[0], 'start_y': start_pos[1], 'distance': int(distance)}
+                        await event.wait()
+                    
+                    # 保存数据到变量
+                    if save_to_variable and gesture_data:
+                        context.set_variable(save_to_variable, gesture_data)
+                    
+                    gesture_service.stop()
+                    
+                    return ModuleResult(
+                        success=True,
+                        message=f"鼠标手势触发器已触发: {gesture_data.get('gesture', '')}",
+                        data=gesture_data
+                    )
+                
+                except asyncio.TimeoutError:
+                    gesture_service.stop()
+                    return ModuleResult(
+                        success=False,
+                        error=f"鼠标手势触发器超时（{timeout}秒）"
+                    )
+            
+            else:
+                # 原有的点击/滚动/移动触发逻辑
+                context.add_log('info', f"🖱️ 鼠标触发器已启动", None)
+                
+                trigger_type_labels = {
+                    'left_click': '左键点击',
+                    'right_click': '右键点击',
+                    'middle_click': '中键点击',
+                    'scroll_up': '向上滚动',
+                    'scroll_down': '向下滚动',
+                    'move': f'移动超过{move_distance}像素'
+                }
+                context.add_log('info', f"📌 触发条件: {trigger_type_labels.get(trigger_type, trigger_type)}", None)
+                
+                # 创建等待事件
+                event = asyncio.Event()
+                mouse_data = {}
+                start_pos = None
+                
+                def on_click(x, y, button, pressed):
+                    nonlocal mouse_data
+                    if not pressed:  # 只在释放时触发
+                        if trigger_type == 'left_click' and button == mouse.Button.left:
+                            mouse_data = {'x': x, 'y': y, 'button': 'left'}
                             event.set()
-            
-            # 启动监听器
-            listener = mouse.Listener(
-                on_click=on_click,
-                on_scroll=on_scroll,
-                on_move=on_move
-            )
-            listener.start()
-            
-            try:
-                # 等待触发或超时
-                if timeout > 0:
-                    await asyncio.wait_for(event.wait(), timeout=timeout)
-                else:
-                    await event.wait()
+                        elif trigger_type == 'right_click' and button == mouse.Button.right:
+                            mouse_data = {'x': x, 'y': y, 'button': 'right'}
+                            event.set()
+                        elif trigger_type == 'middle_click' and button == mouse.Button.middle:
+                            mouse_data = {'x': x, 'y': y, 'button': 'middle'}
+                            event.set()
                 
-                # 保存数据到变量
-                if save_to_variable and mouse_data:
-                    context.set_variable(save_to_variable, mouse_data)
+                def on_scroll(x, y, dx, dy):
+                    nonlocal mouse_data
+                    if trigger_type == 'scroll_up' and dy > 0:
+                        mouse_data = {'x': x, 'y': y, 'direction': 'up', 'delta': dy}
+                        event.set()
+                    elif trigger_type == 'scroll_down' and dy < 0:
+                        mouse_data = {'x': x, 'y': y, 'direction': 'down', 'delta': abs(dy)}
+                        event.set()
                 
-                listener.stop()
+                def on_move(x, y):
+                    nonlocal mouse_data, start_pos
+                    if trigger_type == 'move':
+                        if start_pos is None:
+                            start_pos = (x, y)
+                        else:
+                            distance = ((x - start_pos[0]) ** 2 + (y - start_pos[1]) ** 2) ** 0.5
+                            if distance >= move_distance:
+                                mouse_data = {'x': x, 'y': y, 'start_x': start_pos[0], 'start_y': start_pos[1], 'distance': int(distance)}
+                                event.set()
                 
-                return ModuleResult(
-                    success=True,
-                    message=f"鼠标触发器已触发: {trigger_type_labels.get(trigger_type, trigger_type)}",
-                    data=mouse_data
+                # 启动监听器
+                listener = mouse.Listener(
+                    on_click=on_click,
+                    on_scroll=on_scroll,
+                    on_move=on_move
                 )
-            
-            except asyncio.TimeoutError:
-                listener.stop()
-                return ModuleResult(
-                    success=False,
-                    error=f"鼠标触发器超时（{timeout}秒）"
-                )
+                listener.start()
+                
+                try:
+                    # 等待触发或超时
+                    if timeout > 0:
+                        await asyncio.wait_for(event.wait(), timeout=timeout)
+                    else:
+                        await event.wait()
+                    
+                    # 保存数据到变量
+                    if save_to_variable and mouse_data:
+                        context.set_variable(save_to_variable, mouse_data)
+                    
+                    listener.stop()
+                    
+                    return ModuleResult(
+                        success=True,
+                        message=f"鼠标触发器已触发: {trigger_type_labels.get(trigger_type, trigger_type)}",
+                        data=mouse_data
+                    )
+                
+                except asyncio.TimeoutError:
+                    listener.stop()
+                    return ModuleResult(
+                        success=False,
+                        error=f"鼠标触发器超时（{timeout}秒）"
+                    )
         
         except ImportError:
             return ModuleResult(

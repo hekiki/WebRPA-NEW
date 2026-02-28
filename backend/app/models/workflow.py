@@ -135,6 +135,7 @@ class ExecutionResult(BaseModel):
 
 class LogLevel(str, Enum):
     """日志级别"""
+    DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"

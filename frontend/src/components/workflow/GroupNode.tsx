@@ -123,7 +123,7 @@ export const GroupNode = memo(({ id, data, selected }: NodeProps) => {
       />
       
       <div
-        className="w-full h-full rounded-lg"
+        className="w-full h-full rounded-lg relative"
         style={{
           backgroundColor: colorConfig.bg,
           border: `2px ${isSubflow ? 'solid' : 'dashed'} ${selected ? colorConfig.value : colorConfig.border}`,

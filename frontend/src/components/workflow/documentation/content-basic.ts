@@ -637,4 +637,215 @@ export const basicModulesContent = `# ⚡ 基础模块详解
 **使用场景**：
 - 输入验证码
 - 输入动态密码
-- 确认操作`
+- 确认操作
+
+---
+
+## 💻 脚本模块
+
+### JS脚本
+
+在浏览器环境中执行JavaScript代码，用于数据处理、逻辑判断等。
+
+**配置项**：
+
+| 参数 | 说明 |
+|------|------|
+| 脚本代码 | 要执行的JavaScript代码 |
+
+**执行环境**：
+- 运行在浏览器前端环境
+- 可以访问标准JavaScript内置对象（Array、Object、Math、Date等）
+- 可以通过 \`vars\` 对象读写工作流变量
+
+**变量读写**：
+\`\`\`javascript
+// 读取变量
+const userName = vars.用户名;
+const count = vars.计数器;
+
+// 修改变量（只能修改已存在的变量）
+vars.计数器 = count + 1;
+vars.结果 = "处理完成";
+
+// 注意：不能创建新变量，只能修改已存在的变量
+\`\`\`
+
+**使用场景**：
+- 数据处理和转换
+- 数学计算
+- 字符串处理
+- 逻辑判断
+- 数组和对象操作
+
+**示例1：数据处理**
+\`\`\`javascript
+// 处理价格字符串
+const priceStr = vars.价格; // "¥99.00"
+const price = parseFloat(priceStr.replace(/[¥,]/g, ''));
+vars.价格数值 = price;
+\`\`\`
+
+**示例2：数组操作**
+\`\`\`javascript
+// 过滤数据
+const list = vars.商品列表;
+const filtered = list.filter(item => item.price > 100);
+vars.筛选结果 = filtered;
+\`\`\`
+
+**AI编码助手**：
+- 点击代码编辑器右上角的"AI编码助手"按钮
+- 输入需求描述，AI会自动生成代码
+- AI会自动识别当前工作流中的变量
+- 生成的代码可以直接插入到编辑器中
+
+---
+
+### Python脚本
+
+在Python环境中执行Python代码，功能更强大。
+
+**配置项**：
+
+| 参数 | 说明 |
+|------|------|
+| 脚本代码 | 要执行的Python代码 |
+
+**执行环境**：
+- 运行在Python 3.13环境
+- 可以使用常用的Python库（requests、pandas、numpy、pillow等）
+- 可以通过 \`vars\` 字典读写工作流变量
+
+**变量读写**：
+\`\`\`python
+# 读取变量
+user_name = vars['用户名']
+count = vars['计数器']
+
+# 修改变量（只能修改已存在的变量）
+vars['计数器'] = count + 1
+vars['结果'] = "处理完成"
+
+# 注意：不能创建新变量，只能修改已存在的变量
+\`\`\`
+
+**可用库**：
+- requests：HTTP请求
+- pandas：数据分析
+- numpy：数值计算
+- pillow：图像处理
+- openpyxl：Excel操作
+- json：JSON处理
+- re：正则表达式
+- datetime：日期时间
+- pathlib：路径操作
+- base64：编码解码
+
+**使用场景**：
+- 复杂的数据处理
+- 文件操作
+- 网络请求
+- 图像处理
+- 文本分析
+- 系统操作
+
+**示例1：文件操作**
+\`\`\`python
+from pathlib import Path
+
+# 读取文件
+file_path = vars['文件路径']
+content = Path(file_path).read_text(encoding='utf-8')
+vars['文件内容'] = content
+\`\`\`
+
+**示例2：数据处理**
+\`\`\`python
+import pandas as pd
+
+# 处理Excel数据
+data = vars['Excel数据']
+df = pd.DataFrame(data)
+result = df[df['价格'] > 100]
+vars['筛选结果'] = result.to_dict('records')
+\`\`\`
+
+**AI编码助手**：
+- 点击代码编辑器右上角的"AI编码助手"按钮
+- 输入需求描述，AI会自动生成Python代码
+- AI会自动识别当前工作流中的变量
+- 生成的代码可以直接插入到编辑器中
+
+---
+
+### JS脚本注入
+
+将JavaScript代码注入到当前网页中执行，可以操作网页DOM。
+
+**配置项**：
+
+| 参数 | 说明 |
+|------|------|
+| 脚本代码 | 要注入的JavaScript代码 |
+| 保存返回值到变量 | 存储脚本返回值的变量名 |
+
+**执行环境**：
+- 运行在目标网页的浏览器环境中
+- 可以访问网页的 document、window 等对象
+- 可以操作网页DOM、调用网页的JavaScript函数
+- 可以访问 localStorage、sessionStorage 等
+
+**可用API**：
+- document：操作DOM元素
+- window：访问窗口对象
+- console：输出日志
+- localStorage/sessionStorage：本地存储
+- fetch：发起网络请求
+- 所有浏览器标准API
+
+**使用场景**：
+- 修改网页样式
+- 提取网页数据
+- 模拟用户操作
+- 监听网页事件
+- 自动填表
+- 页面美化
+
+**示例1：修改样式**
+\`\`\`javascript
+// 隐藏广告
+document.querySelectorAll('.ad-banner').forEach(el => {
+  el.style.display = 'none';
+});
+\`\`\`
+
+**示例2：提取数据**
+\`\`\`javascript
+// 提取所有链接
+const links = Array.from(document.querySelectorAll('a')).map(a => ({
+  text: a.textContent,
+  href: a.href
+}));
+return links; // 返回值会保存到变量
+\`\`\`
+
+**示例3：自动填表**
+\`\`\`javascript
+// 自动填写表单
+document.querySelector('#username').value = '用户名';
+document.querySelector('#password').value = '密码';
+document.querySelector('#submit').click();
+\`\`\`
+
+**AI编码助手**：
+- 点击代码编辑器右上角的"AI编码助手"按钮
+- 输入需求描述，AI会自动生成网页操作代码
+- AI会提供常见的网页操作示例
+- 生成的代码可以直接插入到编辑器中
+
+**注意事项**：
+- 脚本在网页环境中执行，不能访问工作流变量
+- 需要先打开网页才能注入脚本
+- 某些网站可能有安全限制
+- 返回值会自动序列化为JSON格式`

@@ -1160,6 +1160,23 @@ export function TableExportConfig({ data, onChange }: { data: NodeData; onChange
           <option value="csv">CSV (.csv)</option>
         </Select>
       </div>
+      
+      {/* 仅在Excel格式时显示Sheet名称配置 */}
+      {((data.exportFormat as string) || 'excel') === 'excel' && (
+        <div className="space-y-2">
+          <Label htmlFor="sheetName">Sheet名称</Label>
+          <VariableInput
+            id="sheetName"
+            value={(data.sheetName as string) || '数据'}
+            onChange={(v) => onChange('sheetName', v)}
+            placeholder="数据，支持 {变量名}"
+          />
+          <p className="text-xs text-muted-foreground">
+            若文件已存在且包含同名Sheet，将覆盖该Sheet；若不存在则自动创建
+          </p>
+        </div>
+      )}
+      
       <div className="space-y-2">
         <Label htmlFor="savePath">保存路径 (可选)</Label>
         <PathInput

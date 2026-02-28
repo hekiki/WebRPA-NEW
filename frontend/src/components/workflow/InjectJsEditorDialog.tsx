@@ -4,6 +4,7 @@ import type { editor } from 'monaco-editor'
 import { X, Play, RotateCcw, Copy, Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useWorkflowStore } from '@/store/workflowStore'
+import { AICodeAssistant } from './AICodeAssistant'
 
 // 预加载 Monaco Editor（只加载一次）
 let monacoPreloaded = false
@@ -322,6 +323,13 @@ export function InjectJsEditorDialog({ isOpen, code, onClose, onSave }: InjectJs
 
         {/* 工具栏 */}
         <div className="flex items-center gap-2 px-4 py-2 border-b bg-gray-50">
+          <AICodeAssistant
+            language="javascript"
+            currentCode={currentCode}
+            onCodeGenerated={(code) => setCurrentCode(code)}
+            variableReferenceFormat="vars.变量名"
+            moduleType="inject_javascript"
+          />
           <Button size="sm" variant="outline" onClick={handleTest}>
             <Play className="w-4 h-4 mr-1" />
             测试运行

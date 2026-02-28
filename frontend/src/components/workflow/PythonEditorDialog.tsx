@@ -3,6 +3,7 @@ import Editor, { type Monaco, loader } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
 import { X, RotateCcw, Copy, Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AICodeAssistant } from './AICodeAssistant'
 
 // 预加载 Monaco Editor（只加载一次）
 let monacoPreloaded = false
@@ -254,6 +255,13 @@ export function PythonEditorDialog({ isOpen, code, onClose, onSave }: PythonEdit
 
         {/* 工具栏 */}
         <div className="flex items-center gap-2 px-4 py-2 border-b bg-gray-50">
+          <AICodeAssistant
+            language="python"
+            currentCode={currentCode}
+            onCodeGenerated={(code) => setCurrentCode(code)}
+            variableReferenceFormat="vars.变量名"
+            moduleType="python_script"
+          />
           <Button size="sm" variant="outline" onClick={handleReset}>
             <RotateCcw className="w-4 h-4 mr-1" />
             重置

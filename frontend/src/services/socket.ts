@@ -80,9 +80,9 @@ class SocketService {
   }
 
   // 发送JS脚本执行结果
-  sendJsScriptResult(requestId: string, success: boolean, result?: unknown, error?: string) {
+  sendJsScriptResult(requestId: string, success: boolean, result?: unknown, error?: string, variables?: Record<string, unknown>) {
     if (this.socket?.connected) {
-      this.socket.emit('js_script_result', { requestId, success, result, error })
+      this.socket.emit('js_script_result', { requestId, success, result, error, variables })
     }
   }
 
@@ -275,6 +275,9 @@ class SocketService {
     variables: Record<string, unknown>
   }) {
     try {
+      // 创建一个可修改的 vars 对象副本
+      const vars = { ...data.variables }
+      
       // 创建一个包含用户代码的函数
       // 用户代码中应该定义 main(vars) 函数
       const wrappedCode = `
@@ -291,9 +294,10 @@ class SocketService {
       // 使用 Function 构造器创建函数，传入 vars 参数
       // eslint-disable-next-line @typescript-eslint/no-implied-eval
       const fn = new Function('vars', wrappedCode)
-      const result = fn(data.variables)
+      const result = fn(vars)
       
-      this.sendJsScriptResult(data.requestId, true, result)
+      // 返回结果和修改后的变量对象
+      this.sendJsScriptResult(data.requestId, true, result, undefined, vars)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       this.sendJsScriptResult(data.requestId, false, undefined, errorMessage)

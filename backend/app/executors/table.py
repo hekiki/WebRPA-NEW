@@ -245,6 +245,7 @@ class TableExportExecutor(ModuleExecutor):
         export_format = context.resolve_value(config.get('exportFormat', 'excel'))  # 支持变量引用
         save_path = context.resolve_value(config.get('savePath', ''))
         file_name_pattern = context.resolve_value(config.get('fileNamePattern', ''))
+        sheet_name = context.resolve_value(config.get('sheetName', '数据'))  # 新增：Sheet名称
         variable_name = config.get('variableName', '')
         
         if not context.data_rows:
@@ -284,17 +285,22 @@ class TableExportExecutor(ModuleExecutor):
             # 使用线程池执行同步导出操作
             loop = asyncio.get_running_loop()
             if export_format == 'excel':
-                await loop.run_in_executor(None, collector.to_excel, final_path)
+                # 传递Sheet名称参数
+                await loop.run_in_executor(None, collector.to_excel, final_path, sheet_name)
             else:
                 await loop.run_in_executor(None, collector.to_csv, final_path)
             
             if variable_name:
                 context.set_variable(variable_name, final_path)
             
+            message = f"已导出 {len(context.data_rows)} 行数据到: {final_path}"
+            if export_format == 'excel':
+                message += f" (Sheet: {sheet_name})"
+            
             return ModuleResult(
                 success=True,
-                message=f"已导出 {len(context.data_rows)} 行数据到: {final_path}",
-                data={'path': final_path, 'rows': len(context.data_rows), 'format': export_format}
+                message=message,
+                data={'path': final_path, 'rows': len(context.data_rows), 'format': export_format, 'sheet_name': sheet_name if export_format == 'excel' else None}
             )
         
         except Exception as e:

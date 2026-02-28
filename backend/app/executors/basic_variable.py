@@ -85,6 +85,11 @@ class PrintLogExecutor(ModuleExecutor):
         log_message = context.resolve_value(config.get('logMessage', '')) or '(空日志)'
         log_level = context.resolve_value(config.get('logLevel', 'info'))
         
+        # 支持debug级别
+        valid_levels = ['debug', 'info', 'warning', 'error', 'success']
+        if log_level not in valid_levels:
+            log_level = 'info'
+        
         try:
             return ModuleResult(success=True, message=log_message,
                               data={'level': log_level, 'message': log_message}, log_level=log_level)
@@ -275,3 +280,82 @@ class WaitElementExecutor(ModuleExecutor):
             if 'Timeout' in error_msg:
                 return ModuleResult(success=False, error=f"等待超时 ({wait_timeout}ms): 元素 {selector} 未满足条件 '{wait_condition}'")
             return ModuleResult(success=False, error=f"等待元素失败: {error_msg}")
+
+
+
+@register_executor
+class IncrementDecrementExecutor(ModuleExecutor):
+    """自增自减模块执行器"""
+    
+    @property
+    def module_type(self) -> str:
+        return "increment_decrement"
+    
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        """
+        自增自减模块 - 对变量进行自增或自减操作
+        配置项：
+        - variableName: 变量名
+        - operation: 操作类型（increment/decrement）
+        - step: 步长（默认为1）
+        """
+        variable_name = context.resolve_value(config.get('variableName', ''))
+        operation = context.resolve_value(config.get('operation', 'increment'))
+        step = context.resolve_value(config.get('step', 1))
+        
+        if not variable_name:
+            return ModuleResult(success=False, error="变量名不能为空")
+        
+        try:
+            # 转换步长为数字
+            if isinstance(step, str):
+                try:
+                    if '.' in step:
+                        step = float(step)
+                    else:
+                        step = int(step)
+                except ValueError:
+                    return ModuleResult(success=False, error=f"步长必须是数字: {step}")
+            
+            # 获取当前变量值
+            current_value = context.get_variable(variable_name)
+            
+            # 如果变量不存在，初始化为0
+            if current_value is None:
+                current_value = 0
+            
+            # 转换当前值为数字
+            if isinstance(current_value, str):
+                try:
+                    if '.' in current_value:
+                        current_value = float(current_value)
+                    else:
+                        current_value = int(current_value)
+                except ValueError:
+                    return ModuleResult(success=False, error=f"变量 '{variable_name}' 的值不是数字: {current_value}")
+            
+            # 确保当前值是数字类型
+            if not isinstance(current_value, (int, float)):
+                return ModuleResult(success=False, error=f"变量 '{variable_name}' 的值不是数字类型")
+            
+            # 执行自增或自减
+            if operation == 'increment':
+                new_value = current_value + step
+                operation_label = "自增"
+            elif operation == 'decrement':
+                new_value = current_value - step
+                operation_label = "自减"
+            else:
+                return ModuleResult(success=False, error=f"未知的操作类型: {operation}")
+            
+            # 保存新值
+            context.set_variable(variable_name, new_value)
+            
+            return ModuleResult(
+                success=True,
+                message=f"{operation_label}: {variable_name} = {current_value} → {new_value} (步长: {step})",
+                data={'variable': variable_name, 'old_value': current_value, 'new_value': new_value, 'step': step}
+            )
+        
+        except Exception as e:
+            return ModuleResult(success=False, error=f"自增自减失败: {str(e)}")

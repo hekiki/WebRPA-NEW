@@ -27,8 +27,6 @@ import type { LogLevel, VariableType } from '@/types'
 import { ExcelAssetsPanel } from './ExcelAssetsPanel'
 import { ImageAssetsPanel } from './ImageAssetsPanel'
 
-type LogFilterType = 'all' | LogLevel
-
 interface LogPanelProps {
   onLogClick?: (nodeId: string) => void
 }
@@ -70,9 +68,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
   const [newColumnName, setNewColumnName] = useState('')
   const [isAddingColumn, setIsAddingColumn] = useState(false)
   
-  // 日志搜索和筛选
+  // 日志搜索和筛选 - 改为多选模式
   const [logSearchQuery, setLogSearchQuery] = useState('')
-  const [logLevelFilter, setLogLevelFilter] = useState<LogFilterType>('all')
+  const [logLevelFilters, setLogLevelFilters] = useState<Set<LogLevel>>(new Set(['debug', 'info', 'success', 'warning', 'error']))
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   
   // 变量相关状态
   const [isAddingVar, setIsAddingVar] = useState(false)
@@ -91,11 +90,33 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     usageCount: number
   } | null>(null)
 
+  // 切换日志级别筛选
+  const toggleLogLevelFilter = (level: LogLevel) => {
+    setLogLevelFilters(prev => {
+      const newFilters = new Set(prev)
+      if (newFilters.has(level)) {
+        newFilters.delete(level)
+      } else {
+        newFilters.add(level)
+      }
+      return newFilters
+    })
+  }
+
+  // 全选/取消全选
+  const toggleAllFilters = () => {
+    if (logLevelFilters.size === 5) {
+      setLogLevelFilters(new Set())
+    } else {
+      setLogLevelFilters(new Set(['debug', 'info', 'success', 'warning', 'error']))
+    }
+  }
+
   // 过滤后的日志
   const filteredLogs = useMemo(() => {
     const filtered = logs.filter(log => {
-      // 类型筛选
-      if (logLevelFilter !== 'all' && log.level !== logLevelFilter) {
+      // 类型筛选 - 多选模式
+      if (logLevelFilters.size > 0 && !logLevelFilters.has(log.level)) {
         return false
       }
       // 搜索筛选
@@ -107,7 +128,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     })
     // 只显示最近的日志，避免渲染过多DOM
     return filtered.slice(-maxLogCount)
-  }, [logs, logLevelFilter, logSearchQuery, maxLogCount])
+  }, [logs, logLevelFilters, logSearchQuery, maxLogCount])
 
   // 自动滚动到最新日志
   useEffect(() => {
@@ -358,6 +379,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
   }
 
   const levelColors = {
+    debug: 'text-gray-500',
     info: 'text-blue-500',
     warning: 'text-yellow-500',
     error: 'text-red-500',
@@ -583,19 +605,82 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                     </button>
                   )}
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="relative flex items-center gap-1">
                   <Filter className="w-3.5 h-3.5 text-blue-500" />
-                  <Select
-                    value={logLevelFilter}
-                    onChange={(e) => setLogLevelFilter(e.target.value as LogFilterType)}
-                    className="h-7 text-xs w-24"
+                  <button
+                    onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                    className="h-7 px-2 text-xs border rounded hover:bg-gray-50 transition-colors flex items-center gap-1"
                   >
-                    <option value="all">全部</option>
-                    <option value="info">信息</option>
-                    <option value="success">成功</option>
-                    <option value="warning">警告</option>
-                    <option value="error">错误</option>
-                  </Select>
+                    <span>筛选 ({logLevelFilters.size})</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  {showFilterDropdown && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setShowFilterDropdown(false)}
+                      />
+                      <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg p-2 z-50 min-w-[140px]">
+                        <div className="space-y-1">
+                          <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer text-xs">
+                            <input
+                              type="checkbox"
+                              checked={logLevelFilters.size === 5}
+                              onChange={toggleAllFilters}
+                              className="rounded"
+                            />
+                            <span className="font-medium">全选/取消</span>
+                          </label>
+                          <div className="border-t my-1" />
+                          <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer text-xs">
+                            <input
+                              type="checkbox"
+                              checked={logLevelFilters.has('debug')}
+                              onChange={() => toggleLogLevelFilter('debug')}
+                              className="rounded"
+                            />
+                            <span className="text-gray-600">🔍 调试</span>
+                          </label>
+                          <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer text-xs">
+                            <input
+                              type="checkbox"
+                              checked={logLevelFilters.has('info')}
+                              onChange={() => toggleLogLevelFilter('info')}
+                              className="rounded"
+                            />
+                            <span className="text-blue-600">ℹ️ 信息</span>
+                          </label>
+                          <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer text-xs">
+                            <input
+                              type="checkbox"
+                              checked={logLevelFilters.has('success')}
+                              onChange={() => toggleLogLevelFilter('success')}
+                              className="rounded"
+                            />
+                            <span className="text-green-600">✓ 成功</span>
+                          </label>
+                          <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer text-xs">
+                            <input
+                              type="checkbox"
+                              checked={logLevelFilters.has('warning')}
+                              onChange={() => toggleLogLevelFilter('warning')}
+                              className="rounded"
+                            />
+                            <span className="text-yellow-600">⚠ 警告</span>
+                          </label>
+                          <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer text-xs">
+                            <input
+                              type="checkbox"
+                              checked={logLevelFilters.has('error')}
+                              onChange={() => toggleLogLevelFilter('error')}
+                              className="rounded"
+                            />
+                            <span className="text-red-600">✕ 错误</span>
+                          </label>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-muted-foreground">显示</span>

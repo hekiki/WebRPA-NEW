@@ -168,7 +168,7 @@ def _save_result(result):
     """保存返回值到文件"""
     try:
         with open(_output_file, 'w', encoding='utf-8') as f:
-            json.dump({{'result': result}}, f, ensure_ascii=False, indent=2, default=str)
+            json.dump({{'result': result, 'variables': vars._variables}}, f, ensure_ascii=False, indent=2, default=str)
     except Exception as e:
         print(f"保存返回值失败: {{e}}", file=sys.stderr)
 
@@ -188,8 +188,8 @@ def _user_script():
 # 执行用户脚本并捕获返回值
 try:
     _result = _user_script()
-    if _result is not None:
-        _save_result(_result)
+    # 无论是否有返回值，都保存变量状态
+    _save_result(_result)
 except Exception as e:
     print(f"脚本执行错误: {{e}}", file=sys.stderr)
     import traceback
@@ -266,16 +266,23 @@ except Exception as e:
                 stdout_text = stdout_data.decode('utf-8', errors='ignore') if stdout_data else ''
                 stderr_text = stderr_data.decode('utf-8', errors='ignore') if stderr_data else ''
                 
-                # 读取返回值（如果有）
+                # 读取返回值和变量（如果有）
                 script_result = None
+                updated_variables = None
                 if output_file_path and os.path.exists(output_file_path):
                     try:
                         with open(output_file_path, 'r', encoding='utf-8') as f:
                             result_data = json.load(f)
                             script_result = result_data.get('result')
+                            updated_variables = result_data.get('variables')
                     except Exception as e:
                         # 读取返回值失败不影响主流程
                         pass
+                
+                # 同步修改后的变量回工作流
+                if updated_variables:
+                    for var_name, var_value in updated_variables.items():
+                        context.set_variable(var_name, var_value)
                 
                 # 保存到变量
                 if stdout_variable:

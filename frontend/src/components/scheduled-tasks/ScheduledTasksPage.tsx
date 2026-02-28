@@ -109,7 +109,7 @@ export function ScheduledTasksPage({ onClose }: ScheduledTasksPageProps = {}) {
         case 'monthly':
           return `每月 ${trigger.monthly_day}日 ${trigger.monthly_time}`
         case 'interval':
-          return `每隔 ${trigger.interval_seconds}秒`
+          return `每隔 ${trigger.interval_seconds} 秒`
         default:
           return '时间触发'
       }

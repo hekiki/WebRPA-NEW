@@ -1,6 +1,7 @@
 """AI模块执行器实现 - 异步版本"""
 import asyncio
 import base64
+import json
 from pathlib import Path
 
 import httpx
@@ -29,13 +30,11 @@ class AIChatExecutor(ModuleExecutor):
         system_prompt = context.resolve_value(config.get('systemPrompt', ''))
         user_prompt = context.resolve_value(config.get('userPrompt', ''))
         variable_name = config.get('variableName', '')
-        temperature = to_float(config.get('temperature', 0.7), 0.7, context)  # 支持变量引用
-        max_tokens = to_int(config.get('maxTokens', 2000), 2000, context)  # 支持变量引用
+        temperature = to_float(config.get('temperature', 0.7), 0.7, context)
+        max_tokens = to_int(config.get('maxTokens', 2000), 2000, context)
         
         if not api_url:
             return ModuleResult(success=False, error="API地址不能为空")
-        if not api_key:
-            return ModuleResult(success=False, error="API密钥不能为空")
         if not model:
             return ModuleResult(success=False, error="模型名称不能为空")
         if not user_prompt:
@@ -51,13 +50,16 @@ class AIChatExecutor(ModuleExecutor):
                 "model": model,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": max_tokens
+                "max_tokens": max_tokens,
+                "stream": False
             }
             
             headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}"
+                "Content-Type": "application/json"
             }
+            
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
             
             async with httpx.AsyncClient(timeout=120) as client:
                 response = await client.post(api_url, json=request_body, headers=headers)
@@ -72,12 +74,43 @@ class AIChatExecutor(ModuleExecutor):
                     pass
                 return ModuleResult(success=False, error=f"API请求失败 ({response.status_code}): {error_msg}")
             
-            result = response.json()
+            ai_response = ""
+            usage_info = {}
             
-            if 'choices' not in result or len(result['choices']) == 0:
-                return ModuleResult(success=False, error="API返回格式异常")
-            
-            ai_response = result['choices'][0].get('message', {}).get('content', '')
+            try:
+                result = response.json()
+                
+                if 'choices' in result and len(result['choices']) > 0:
+                    ai_response = result['choices'][0].get('message', {}).get('content', '')
+                    usage_info = result.get('usage', {})
+                elif 'message' in result:
+                    ai_response = result.get('message', {}).get('content', '')
+                else:
+                    return ModuleResult(success=False, error="API返回格式异常")
+                    
+            except Exception as json_error:
+                try:
+                    response_text = response.text.strip()
+                    
+                    lines = response_text.split('\n')
+                    for line in lines:
+                        if line.strip():
+                            try:
+                                chunk = json.loads(line)
+                                if 'message' in chunk:
+                                    content = chunk.get('message', {}).get('content', '')
+                                    if content:
+                                        ai_response += content
+                                if chunk.get('done', False):
+                                    break
+                            except json.JSONDecodeError:
+                                continue
+                    
+                    if not ai_response:
+                        return ModuleResult(success=False, error=f"无法解析API响应: {str(json_error)}")
+                        
+                except Exception as e:
+                    return ModuleResult(success=False, error=f"解析API响应失败: {str(e)}")
             
             if not ai_response:
                 return ModuleResult(success=False, error="AI返回内容为空")
@@ -90,7 +123,7 @@ class AIChatExecutor(ModuleExecutor):
             return ModuleResult(
                 success=True, 
                 message=f"AI回复: {display_content}",
-                data={'response': ai_response, 'model': model, 'usage': result.get('usage', {})}
+                data={'response': ai_response, 'model': model, 'usage': usage_info}
             )
         
         except httpx.TimeoutException:
@@ -115,10 +148,10 @@ class AIVisionExecutor(ModuleExecutor):
         model = context.resolve_value(config.get('model', ''))
         user_prompt = context.resolve_value(config.get('userPrompt', ''))
         variable_name = config.get('variableName', '')
-        max_tokens = to_int(config.get('maxTokens', 1000), 1000, context)  # 支持变量引用
-        timeout_ms = to_int(config.get('timeout', 30000), 30000, context)  # 支持变量引用
+        max_tokens = to_int(config.get('maxTokens', 1000), 1000, context)
+        timeout_ms = to_int(config.get('timeout', 30000), 30000, context)
         
-        image_source = context.resolve_value(config.get('imageSource', 'element'))  # 支持变量引用
+        image_source = context.resolve_value(config.get('imageSource', 'element'))
         image_selector = context.resolve_value(config.get('imageSelector', ''))
         image_url = context.resolve_value(config.get('imageUrl', ''))
         image_variable = config.get('imageVariable', '')

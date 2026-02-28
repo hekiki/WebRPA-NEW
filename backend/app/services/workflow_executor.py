@@ -284,6 +284,7 @@ class WorkflowExecutor:
         """设置进度回调，让模块执行器可以发送进度日志"""
         async def progress_callback(message: str, level: str = "info"):
             level_map = {
+                'debug': LogLevel.DEBUG,
                 'info': LogLevel.INFO,
                 'warning': LogLevel.WARNING,
                 'error': LogLevel.ERROR,
@@ -725,7 +726,7 @@ class WorkflowExecutor:
                 
                 log_level = LogLevel.INFO
                 if node.type == 'print_log' and result.log_level:
-                    level_map = {'info': LogLevel.INFO, 'warning': LogLevel.WARNING, 
+                    level_map = {'debug': LogLevel.DEBUG, 'info': LogLevel.INFO, 'warning': LogLevel.WARNING, 
                                  'error': LogLevel.ERROR, 'success': LogLevel.SUCCESS}
                     log_level = level_map.get(result.log_level, LogLevel.INFO)
                 

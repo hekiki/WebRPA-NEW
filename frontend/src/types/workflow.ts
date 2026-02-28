@@ -35,6 +35,7 @@ export type ModuleType =
   | 'get_sibling_elements'
   // 数据处理
   | 'set_variable'
+  | 'increment_decrement'
   | 'json_parse'
   | 'base64'
   | 'random_number'
@@ -399,7 +400,7 @@ export interface ExecutionResult {
 }
 
 // 日志级别
-export type LogLevel = 'info' | 'warning' | 'error' | 'success'
+export type LogLevel = 'debug' | 'info' | 'warning' | 'error' | 'success'
 
 // 日志条目
 export interface LogEntry {

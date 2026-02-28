@@ -942,8 +942,58 @@ export function MouseTriggerConfig({
           <option value="scroll_up">向上滚动</option>
           <option value="scroll_down">向下滚动</option>
           <option value="move">移动超过指定距离</option>
+          <option value="left_gesture">左键手势触发</option>
+          <option value="right_gesture">右键手势触发</option>
+          <option value="middle_gesture">中键手势触发</option>
+          <option value="custom_gesture">自定义手势触发</option>
         </Select>
       </div>
+      
+      {['left_gesture', 'right_gesture', 'middle_gesture', 'custom_gesture'].includes(data.triggerType as string) && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="gesturePattern">手势模式 (可选)</Label>
+            <Input
+              id="gesturePattern"
+              value={(data.gesturePattern as string) || ''}
+              onChange={(e) => onChange('gesturePattern', e.target.value)}
+              placeholder="例如: up, down_right, left_up_right"
+            />
+            <p className="text-xs text-muted-foreground">
+              留空表示任意手势。支持方向: up(上), down(下), left(左), right(右)，用下划线连接表示连续手势
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="minGestureDistance">手势最小距离 (像素)</Label>
+            <NumberInput
+              id="minGestureDistance"
+              value={(data.minGestureDistance as number) ?? 50}
+              onChange={(v) => onChange('minGestureDistance', v)}
+              defaultValue={50}
+              min={10}
+            />
+            <p className="text-xs text-muted-foreground">
+              手势识别的最小移动距离
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="gestureTimeout">手势超时 (秒)</Label>
+            <NumberInput
+              id="gestureTimeout"
+              value={(data.gestureTimeout as number) ?? 2}
+              onChange={(v) => onChange('gestureTimeout', v)}
+              defaultValue={2}
+              min={0.5}
+              step={0.1}
+            />
+            <p className="text-xs text-muted-foreground">
+              手势绘制的最大时长，超时则取消
+            </p>
+          </div>
+        </>
+      )}
       
       {(data.triggerType as string) === 'move' && (
         <div className="space-y-2">
@@ -997,6 +1047,7 @@ export function MouseTriggerConfig({
             <ul className="list-disc list-inside space-y-1">
               <li>触发器会监听全局鼠标事件</li>
               <li>触发后会保存鼠标坐标和事件类型</li>
+              <li>手势触发：按住鼠标按键并移动绘制手势</li>
               <li>可用于实现鼠标手势、快捷操作等功能</li>
             </ul>
           </div>

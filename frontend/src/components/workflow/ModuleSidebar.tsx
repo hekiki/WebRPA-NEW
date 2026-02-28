@@ -32,6 +32,7 @@ import {
   LogOut,
   SkipForward,
   Variable,
+  TrendingUp,
   MessageSquareText,
   MessageSquare,
   MessageSquareMore,
@@ -198,6 +199,7 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   wait_image: Eye,
   // 变量与数据
   set_variable: Variable,
+  increment_decrement: TrendingUp,
   json_parse: FileJson,
   base64: Code2,
   random_number: Dices,
@@ -494,6 +496,7 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   switch_to_main: ['切换', '主页面', '退出', 'iframe', 'frame', '返回', '主框架', 'main', 'qhzyym', 'qh', 'zyym', 'tc', 'fh', 'zkj', 'qiehuan', 'zhuyemian', 'tuichu', 'fanhui', 'zhukuangjia'],
   switch_tab: ['切换', '标签页', 'tab', '页面', '窗口', '索引', '标题', 'url', '下一个', '上一个', 'qhbqy', 'qh', 'bqy', 'ym', 'ck', 'qiehuan', 'biaoqianye', 'yemian', 'chuangkou'],
   set_variable: ['设置', '变量', 'set', 'variable', '赋值'],
+  increment_decrement: ['自增', '自减', '加', '减', 'increment', 'decrement', '计数', '累加', '累减', '步长'],
   json_parse: ['json', '解析', '提取', 'parse', '数据', 'jsonpath'],
   base64: ['base64', '编码', '解码', 'encode', 'decode', '转换', '图片', '文件'],
   random_number: ['随机', '数字', 'random', '生成', '随机数'],
@@ -847,7 +850,7 @@ const moduleCategories = [
   {
     name: '📝 变量操作',
     color: 'bg-teal-500',
-    modules: ['set_variable', 'json_parse', 'base64', 'random_number', 'get_time'] as ModuleType[],
+    modules: ['set_variable', 'increment_decrement', 'json_parse', 'base64', 'random_number', 'get_time'] as ModuleType[],
   },
   {
     name: '✂️ 文本处理',
@@ -873,7 +876,7 @@ const moduleCategories = [
   {
     name: '🔀 流程控制',
     color: 'bg-orange-500',
-    modules: ['condition', 'loop', 'break_loop', 'continue_loop', 'scheduled_task', 'subflow', 'subflow_header'] as ModuleType[],
+    modules: ['condition', 'loop', 'break_loop', 'continue_loop', 'scheduled_task', 'subflow'] as ModuleType[],
   },
   // ===== 触发器 =====
   {

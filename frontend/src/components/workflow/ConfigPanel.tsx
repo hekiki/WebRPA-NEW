@@ -25,6 +25,7 @@ import {
   WaitElementConfig,
   WaitImageConfig,
   SetVariableConfig,
+  IncrementDecrementConfig,
   PrintLogConfig,
   PlaySoundConfig,
   SystemNotificationConfig,
@@ -630,6 +631,8 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         )
       case 'set_variable':
         return <SetVariableConfig data={nodeData} onChange={handleChange} />
+      case 'increment_decrement':
+        return <IncrementDecrementConfig data={nodeData} onChange={handleChange} />
       case 'print_log':
         return <PrintLogConfig data={nodeData} onChange={handleChange} />
       case 'play_sound':

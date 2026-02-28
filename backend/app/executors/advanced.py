@@ -1656,7 +1656,9 @@ class RealMouseClickExecutor(ModuleExecutor):
                 inp.mi.dwFlags = event_flag
                 inp.mi.time = 0
                 inp.mi.dwExtraInfo = ctypes.pointer(ctypes.c_ulong(0))
-                user32.SendInput(1, ctypes.pointer(inp), ctypes.sizeof(INPUT))
+                # 使用数组类型而不是指针
+                inp_array = (INPUT * 1)(inp)
+                user32.SendInput(1, inp_array, ctypes.sizeof(INPUT))
 
             if click_type == "hold":
                 # 长按模式
@@ -1850,7 +1852,9 @@ class RealMouseDragExecutor(ModuleExecutor):
                 inp.mi.dwFlags = event_flag
                 inp.mi.time = 0
                 inp.mi.dwExtraInfo = ctypes.pointer(ctypes.c_ulong(0))
-                user32.SendInput(1, ctypes.pointer(inp), ctypes.sizeof(INPUT))
+                # 使用数组类型而不是指针
+                inp_array = (INPUT * 1)(inp)
+                user32.SendInput(1, inp_array, ctypes.sizeof(INPUT))
 
             # 1. 移动到起点
             user32.SetCursorPos(start_x, start_y)
@@ -2340,7 +2344,9 @@ class ClickImageExecutor(ModuleExecutor):
                 inp.mi.dwFlags = event_flag
                 inp.mi.time = 0
                 inp.mi.dwExtraInfo = ctypes.pointer(ctypes.c_ulong(0))
-                user32.SendInput(1, ctypes.pointer(inp), ctypes.sizeof(INPUT))
+                # 使用数组类型而不是指针
+                inp_array = (INPUT * 1)(inp)
+                user32.SendInput(1, inp_array, ctypes.sizeof(INPUT))
 
             # 执行点击
             click_count = 2 if click_type == "double" else 1

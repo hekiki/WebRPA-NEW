@@ -200,6 +200,7 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   get_sibling_elements: '获取兄弟元素',
   // 数据处理
   set_variable: '设置变量',
+  increment_decrement: '自增自减',
   json_parse: 'JSON解析',
   base64: 'Base64',
   random_number: '随机数',
@@ -507,6 +508,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   get_sibling_elements: 60000, // 60秒
   // 数据处理 - 通常很快
   set_variable: 5000,      // 5秒
+  increment_decrement: 5000, // 5秒
   json_parse: 5000,        // 5秒
   base64: 10000,           // 10秒
   random_number: 5000,     // 5秒

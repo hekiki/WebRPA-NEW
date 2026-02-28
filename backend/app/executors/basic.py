@@ -1822,7 +1822,20 @@ class JsScriptExecutor(ModuleExecutor):
             
             if result.get('success'):
                 script_result = result.get('result')
+                modified_variables = result.get('variables')
                 
+                # 同步修改后的变量回工作流
+                if modified_variables:
+                    for var_name, var_value in modified_variables.items():
+                        # 只同步已存在的变量（避免创建新变量）
+                        if var_name in context.variables:
+                            old_value = context.variables[var_name]
+                            # 只有值发生变化时才更新
+                            if old_value != var_value:
+                                context.set_variable(var_name, var_value)
+                                print(f"[JsScript] 变量已同步: {var_name} = {var_value} (旧值: {old_value})")
+                
+                # 保存返回值到结果变量
                 if result_variable:
                     context.set_variable(result_variable, script_result)
                 

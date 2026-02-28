@@ -52,6 +52,10 @@ class LogManager:
         
         return entry
     
+    async def debug(self, message: str, node_id: Optional[str] = None, **kwargs) -> LogEntry:
+        """记录调试日志"""
+        return await self.log(LogLevel.DEBUG, message, node_id, **kwargs)
+    
     async def info(self, message: str, node_id: Optional[str] = None, **kwargs) -> LogEntry:
         """记录信息日志"""
         return await self.log(LogLevel.INFO, message, node_id, **kwargs)
@@ -113,6 +117,7 @@ class LogManager:
             "session_id": self.session_id,
             "session_start": self.session_start.isoformat() if self.session_start else None,
             "total_logs": len(self.logs),
+            "debug_count": len(self.get_logs_by_level(LogLevel.DEBUG)),
             "info_count": len(self.get_logs_by_level(LogLevel.INFO)),
             "warning_count": len(self.get_logs_by_level(LogLevel.WARNING)),
             "error_count": len(self.get_logs_by_level(LogLevel.ERROR)),

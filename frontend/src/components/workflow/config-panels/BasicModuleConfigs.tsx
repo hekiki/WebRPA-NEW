@@ -487,6 +487,7 @@ export function PrintLogConfig({ data, onChange }: { data: NodeData; onChange: (
           value={(data.logLevel as string) || 'info'}
           onChange={(e) => onChange('logLevel', e.target.value)}
         >
+          <option value="debug">'调试'</option>
           <option value="info">'信息'</option>
           <option value="success">'成功'</option>
           <option value="warning">'警告'</option>
@@ -2267,6 +2268,49 @@ export function SwitchTabConfig({ data, onChange }: { data: NodeData; onChange: 
           <li>标题和URL支持多种匹配模式，包括正则表达式</li>
         </ul>
       </div>
+    </>
+  )
+}
+
+
+// 自增自减配置
+export function IncrementDecrementConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+  
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="variableName">变量名</Label>
+        <VariableNameInput
+          id="variableName"
+          value={(data.variableName as string) || ''}
+          onChange={(v) => onChange('variableName', v)}
+          placeholder="要操作的变量名"
+          isStorageVariable={true}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="operation">操作类型</Label>
+        <Select
+          id="operation"
+          value={(data.operation as string) || 'increment'}
+          onChange={(e) => onChange('operation', e.target.value)}
+        >
+          <option value="increment">自增 (+)</option>
+          <option value="decrement">自减 (-)</option>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="step">步长</Label>
+        <VariableInput
+          id="step"
+          value={(data.step as string) || '1'}
+          onChange={(v) => onChange('step', v)}
+          placeholder="每次增加或减少的值"
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        对变量进行自增或自减操作。如果变量不存在，将初始化为0。支持整数和小数。
+      </p>
     </>
   )
 }

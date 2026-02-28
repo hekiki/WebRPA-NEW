@@ -5,8 +5,24 @@ import uuid
 from pathlib import Path
 
 # Windows 上需要设置事件循环策略以支持 Playwright
+# Python 3.13 在 Windows 10 上的兼容性修复
 if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    # Python 3.13 在 Windows 10 上需要使用 WindowsSelectorEventLoopPolicy
+    # 而不是默认的 WindowsProactorEventLoopPolicy，因为后者不支持 subprocess
+    try:
+        # 尝试设置 WindowsSelectorEventLoopPolicy
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        print("[EventLoop] 已设置 WindowsSelectorEventLoopPolicy（兼容 Python 3.13 + Windows 10）")
+    except AttributeError:
+        # 如果没有 WindowsSelectorEventLoopPolicy，使用默认策略
+        print("[EventLoop] 使用默认事件循环策略")
+    
+    # 对于 Python 3.8+，确保事件循环已创建
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -505,6 +521,7 @@ async def js_script_result(sid, data):
                 'success': data.get('success', False),
                 'result': data.get('result'),
                 'error': data.get('error'),
+                'variables': data.get('variables'),  # 接收修改后的变量对象
             }
             if request_id in js_script_events:
                 js_script_events[request_id].set()

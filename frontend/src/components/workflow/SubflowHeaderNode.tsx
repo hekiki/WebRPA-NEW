@@ -1,6 +1,6 @@
 import { memo, useState, useCallback } from 'react'
 import { Handle, Position, type NodeProps, useReactFlow } from '@xyflow/react'
-import { Workflow, GripVertical } from 'lucide-react'
+import { Workflow, GripVertical, ChevronDown, ChevronUp } from 'lucide-react'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 
 export interface SubflowHeaderNodeData {
@@ -8,16 +8,88 @@ export interface SubflowHeaderNodeData {
   moduleType: 'subflow_header'
   subflowName?: string // 子流程名称（用于调用）
   originalGroupId?: string // 原分组ID（用于转换时的引用）
+  collapsed?: boolean // 是否折叠
 }
 
 export const SubflowHeaderNode = memo(({ id, data, selected }: NodeProps) => {
   const nodeData = data as unknown as SubflowHeaderNodeData
-  const { setNodes, getNodes } = useReactFlow()
+  const { setNodes, getNodes, getEdges } = useReactFlow()
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(nodeData.label || '')
   
+  const isCollapsed = nodeData.collapsed === true
+  
   // 获取全局配置的连接点尺寸
   const handleSize = useGlobalConfigStore((state) => state.config.display?.handleSize || 12)
+
+  // 切换折叠状态
+  const toggleCollapse = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    const nodes = getNodes()
+    const edges = getEdges()
+    const currentNode = nodes.find(n => n.id === id)
+    if (!currentNode) return
+    
+    const newCollapsed = !isCollapsed
+    
+    // 找出从当前节点出发的所有连接的目标节点
+    const directTargets = edges
+      .filter(e => e.source === id)
+      .map(e => e.target)
+    
+    if (directTargets.length === 0) return
+    
+    // 递归查找所有子节点（通过边连接的所有下游节点）
+    const findAllDescendants = (nodeId: string, visited = new Set<string>()): Set<string> => {
+      if (visited.has(nodeId)) return visited
+      visited.add(nodeId)
+      
+      const children = edges
+        .filter(e => e.source === nodeId)
+        .map(e => e.target)
+      
+      children.forEach(childId => {
+        if (!visited.has(childId)) {
+          findAllDescendants(childId, visited)
+        }
+      })
+      
+      return visited
+    }
+    
+    // 获取所有下游节点
+    const allDescendants = new Set<string>()
+    directTargets.forEach(targetId => {
+      findAllDescendants(targetId, allDescendants)
+    })
+    
+    // 更新节点状态
+    setNodes((nodes) =>
+      nodes.map((node) => {
+        // 更新当前节点的折叠状态
+        if (node.id === id) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              collapsed: newCollapsed,
+            },
+          }
+        }
+        
+        // 隐藏或显示所有下游节点
+        if (allDescendants.has(node.id)) {
+          return {
+            ...node,
+            hidden: newCollapsed,
+          }
+        }
+        
+        return node
+      })
+    )
+  }, [id, isCollapsed, getNodes, getEdges, setNodes])
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true)
@@ -95,6 +167,19 @@ export const SubflowHeaderNode = memo(({ id, data, selected }: NodeProps) => {
       {/* 顶部装饰线 */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 rounded-t-lg" />
       
+      {/* 折叠按钮 - 右上角 */}
+      <button
+        onClick={toggleCollapse}
+        className="absolute top-2 right-2 z-20 p-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-md"
+        title={isCollapsed ? "展开子流程" : "折叠子流程"}
+      >
+        {isCollapsed ? (
+          <ChevronDown className="w-3.5 h-3.5" />
+        ) : (
+          <ChevronUp className="w-3.5 h-3.5" />
+        )}
+      </button>
+      
       {/* 主体内容 */}
       <div className="flex items-center gap-3">
         {/* 图标 */}
@@ -135,19 +220,23 @@ export const SubflowHeaderNode = memo(({ id, data, selected }: NodeProps) => {
       </div>
       
       {/* 底部提示 */}
-      <div className="mt-2 pt-2 border-t border-emerald-200/50">
-        <p className="text-[10px] text-emerald-700 opacity-80">
-          ⬇️ 连接到子流程的第一个模块
-        </p>
-      </div>
+      {!isCollapsed && (
+        <div className="mt-2 pt-2 border-t border-emerald-200/50">
+          <p className="text-[10px] text-emerald-700 opacity-80">
+            ⬇️ 连接到子流程的第一个模块
+          </p>
+        </div>
+      )}
       
       {/* 连接点 - 只有底部输出，没有顶部输入 */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!bg-emerald-500 !border-2 !border-white"
-        style={{ bottom: -6, width: `${handleSize}px`, height: `${handleSize}px` }}
-      />
+      {!isCollapsed && (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="!bg-emerald-500 !border-2 !border-white"
+          style={{ bottom: -6, width: `${handleSize}px`, height: `${handleSize}px` }}
+        />
+      )}
     </div>
   )
 })
